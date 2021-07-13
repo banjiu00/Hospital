@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css"/>
+    <link rel="stylesheet" type="text/css" href="../Css/style.css"/>
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+<!--    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>-->
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+    <script type="text/javascript">
+        $(function () {
+            loadData();
+            $("ul[class='pager']>li").click(function(){
+                if(($(this).attr("class"))=='disabled')
+                    return;
+                let num=$(this).attr("name");
+                $("input[name='pageNum']").val(num);
+                loadData();
+            });
+            $('#newNav').click(function () {
+                window.location.href = "addUser.html";
+            });
+
+        });
+
+        $(function(){
+            $("#checkall").click(function(){
+                var flag=$(this).prop("checked");
+                var oneList=$("input[name='one']");
+                for(var i=0;i<oneList.length;i++){
+                    $(oneList[i]).prop("checked",flag);
+                }
+            });
+            $("input[name='one']").click(function(){
+                var oneList=$("input[name='one']");
+                for(var i=0;i<oneList.length;i++){
+                    if(!$(oneList[i]).prop("checked")){
+                        $("#checkall").prop("checked",false);
+                        return;
+                    }
+                }
+                $("#checkall").prop("checked",true);
+            });
+        });
+
+        function checkall() {
+            var alls = document.getElementsByName("check");
+            var ch = document.getElementById("checkall");
+            if (ch.checked) {
+                for (var i = 0; i < alls.length; i++) {
+                    alls[i].checked = true;
+                }
+            } else {
+                for (var i = 0; i < alls.length; i++) {
+                    alls[i].checked = false;
+                }
+            }
+        }
+
+        function delAll() {
+            var alls = document.getElementsByName("check");
+            var ids = new Array();
+            for (var i = 0; i < alls.length; i++) {
+                if (alls[i].checked) {
+                    ids.push(alls[i].value);
+                }
+            }
+            if (ids.length > 0) {
+                if (confirm("确认删除?")) {
+                    for (var i=0;i<ids.length;i++){
+                        deleteUser(ids[i]);
+                    }
+                    alert("删除成功!");
+                }
+            } else {
+                alert("请选中要删除的项");
+            }
+        }
+
+        String.prototype.GetValue= function(para) {
+            let reg = new RegExp("(^|&)"+ para +"=([^&]*)(&|$)");
+            let r = this.substr(this.indexOf("\?")+1).match(reg);
+            if (r!=null) return unescape(r[2]); return null;
+        }
+
+        //加载数据
+        function loadData() {
+            let url = document.location.toString();
+            let pageNum=url.GetValue("pageNum");
+            let pageSize=url.GetValue("pageSize");
+            if(pageNum!=null&&$("input[name='pageNum']").val()!=null){
+                $("input[name='pageNum']").val(pageNum);
+            }
+            if(pageSize!=null&&$("select[name='pageSize']").val()!=null){
+                $("select[name='pageSize']").val(pageSize);
+            }
+            $.ajax({
+                type: "GET",
+                url: "/user/list",
+                data: $("#myForm").serialize(),//主要是分页和多条件参数数据
+                dataType: "json",
+                success: function (vo) {
+                    //alert( "Data Saved: " + vo );
+                    let list = vo.pageInfo.list;
+                    let str = "";
+                    for (let i = 0; i < list.length; i++) {
+                        let obj = list[i];
+                        let loginname = obj.u_loginName;
+                        let truename = obj.u_trueName;
+                        let role = obj.r_id==-1?" ":obj.role.r_name;
+                        let btnStr = '<button type="button" name="deleteBtn" class="btn btn-sm btn-danger" onclick="deleteUser(' + obj.u_id + ')">删除</button>' +
+                            '<button type="button" name="updateBtn" class="btn btn-sm btn-info" onclick="updateUser(' + obj.u_id + ')">更新</button>&nbsp;';
+
+                        str += '<tr>' +
+                            '            <td><input type="checkbox"/></td>' +
+                            '            <td>' + loginname + '</td>' +
+                            '            <td>' + truename + '</td>' +
+                            '            <td>' + role + '</td>' +
+                            '            <td>' + btnStr + '</td>' +
+                            '</tr>'
+                    }
+                    $("#tboby").html(str);
+                    //填充分页数据
+                    fillPageData(vo.pageInfo);
+                }
+            });
+        }
+        //填充分页信息
+        function fillPageData(pageInfo) {
+            //填充信息
+            $("#total").html(pageInfo.total);
+            $("#pages").html(pageInfo.pages);
+            $("input[name='pageNum']").val(pageInfo.pageNum);
+            $("select[name='pageSize']").val(pageInfo.pageSize);
+            //设置按钮的属性值和样式
+            $("#firstPage").attr("name",1);
+            $("#prePage").attr("name",pageInfo.prePage);
+            $("#nextPage").attr("name",pageInfo.nextPage);
+            $("#lastPage").attr("name",pageInfo.pages);
+            $("#firstPage").removeClass("disabled");
+            $("#prePage").removeClass("disabled");
+            $("#nextPage").removeClass("disabled");
+            $("#lastPage").removeClass("disabled");
+            if(pageInfo.isFirstPage){//如果是第一页：上一页和首页禁用
+                $("#firstPage").addClass("disabled");
+                $("#prePage").addClass("disabled");
+            }
+            if(pageInfo.isLastPage){//如果已经是最后一页：下一页和末页禁用
+                $("#nextPage").addClass("disabled");
+                $("#lastPage").addClass("disabled");
+            }
+        }
+
+        //删除
+        function deleteUser(id){
+            if(confirm("确定要删除吗?")) {
+                //发起异步请求
+                $.ajax({
+                    type: "POST",
+                    url: "/user/" + id, //RESTful风格的API定义
+                    data: "_method=DELETE",
+                    success: function (vo) {
+                        if(vo.code==200){
+                            loadData();
+                        }else{
+                            alert("删除失败！"+vo.msg);
+                        }
+                    }
+                });
+            }
+        }
+        //更新
+        function updateUser(id){
+            let pageNum=$("input[name='pageNum']").val();
+            let pageSize=$("select[name='pageSize']").val();
+            window.location.href="/html/User/editUser.html?u_id="+id+"&pageNum="+pageNum+"&pageSize="+pageSize;
+        }
+
+    </script>
+</head>
+<body>
+<form id="myForm" class="form-inline definewidth m20" >
+    用户名称：
+    <input type="text" name="u_loginName" id="u_loginName" class="abc input-default" placeholder="" value="">&nbsp;&nbsp;
+    <button type="button" class="btn btn-primary" onclick="loadData()">查询</button>
+
+    <table class="table table-bordered table-hover definewidth m10">
+        <thead>
+        <tr>
+            <th width="5%"><input type="checkbox" id="checkall" ></th>
+            <th>用户账户</th>
+            <th>真实姓名</th>
+            <th>角色</th>
+            <th width="10%">操作</th>
+        </tr>
+        </thead>
+        <tbody id="tboby">
+        <tr>
+            <td style="vertical-align:middle;"><input type="checkbox" name="check" value="1"></td>
+            <td>admin</td>
+            <td>管理员</td>
+            <td>管理员</td>
+            <td>
+                <a href="editUser.html">编辑</a>&nbsp;&nbsp;&nbsp;<a href="javascript:alert('删除成功！');">删除</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table class="table table-bordered table-hover definewidth m10">
+        <tr>
+            <th colspan="5">
+
+                <div class="inline pull-right page">
+                    <ul class="pager" style="margin: 0;">
+                        <li name="pageLi" id="firstPage"><a href="javascript:void(0)">首页</a></li>
+                        <li name="pageLi" id="prePage"><a href="javascript:void(0)">上一页</a></li>
+                        <li name="pageLi" id="nextPage"><a href="javascript:void(0)">下一页</a></li>
+                        <li name="pageLi" id="lastPage"><a href="javascript:void(0)">末页</a></li>
+                        共<span id="total"></span>条数据，共<span id="pages"></span>页
+                        每页显示
+                        <select class="col-sm-12" name="pageSize">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                        </select>条数据
+                        跳转到第
+                        <input class="form-control" name="pageNum" value="1" />页
+                    </ul>
+                </div>
+
+<!--                    10122 条记录 1/507 页 <a href='#'>下一页</a> <span class='current'>1</span><a href='#'>2</a><a-->
+<!--                        href='/chinapost/index.php?m=Label&a=index&p=3'>3</a><a href='#'>4</a><a href='#'>5</a> <a-->
+<!--                        href='#'>下5页</a> <a href='#'>最后一页</a>-->
+
+                <div>
+
+                    <button type="button" class="btn btn-success" id="newNav">添加用户</button>&nbsp;&nbsp;&nbsp;
+                    <button
+                        type="button" class="btn btn-success" id="delPro" onClick="delAll();">删除选中
+                    </button>
+                </div>
+            </th>
+        </tr>
+    </table>
+</form>
+</body>
+</html>

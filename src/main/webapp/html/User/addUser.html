@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/style.css" />
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+ 
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+    <script>
+    $(function () {
+        loadRole();
+
+		$('#backid').click(function(){
+				window.location.href="index.html";
+		 });
+
+        //验证用户名称唯一性
+        $("input[name='u_loginName']").blur(function (){
+            if ($("input[name='u_loginName']").val().length<1){
+                $("#name").html("账号不能为空！");
+                $("#name").css("color","red");
+                return;
+            }
+            $.ajax({
+                type: "GET",
+                url: "/user/list",
+                data: {pageNum:1,pageSize:100},
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        let list=vo.pageInfo.list;
+                        var flag=false;
+                        for (var i=0;i<list.length;i++){
+                            if($("input[name='u_loginName']").val() == list[i].u_loginName)
+                                flag=true;
+                        }
+                        if (flag){
+                            $("#name").html("账号已存在！");
+                            $("#name").css("color","red");
+                        }else {
+                            $("#name").html("账号可用");
+                            $("#name").css("color","green");
+                        }
+                    }
+                }
+            });
+        })
+
+        //密码不能少于6位
+        $("input[name='u_passWord']").blur(function (){
+            var password=$("input[name='u_passWord']").val();
+            if (password=="" || password.length<6){
+                $("#password").html("密码不得少于6位数");
+                $("#password").css("color","red");
+            }else {
+                $("#password").html("√");
+                $("#password").css("color","green");
+            }
+        })
+
+        //真实姓名非空
+        $("input[name='u_trueName']").blur(function (){
+            var realname=$("input[name='u_trueName']").val();
+            if (realname.length<1){
+                $("#realname").html("真实姓名不能为空");
+                $("#realname").css("color","red");
+            }else {
+                $("#realname").html("√");
+                $("#realname").css("color","green");
+            }
+        })
+
+        //邮箱验证
+        $("input[name='u_email']").blur(function (){
+            var reg = /^\w+((.\w+)|(-\w+))@[A-Za-z0-9]+((.|-)[A-Za-z0-9]+).[A-Za-z0-9]+$/;
+            if (!reg.test($("input[name='u_email']").val())){
+                $("#email").html("邮箱不合法");
+                $("#email").css("color","red");
+            }else {
+                $("#email").html("√");
+                $("#email").css("color","green");
+            }
+        })
+
+        //提交按钮的单击事件
+        $("#btnAdd").click(function () {
+
+            if ($("input[name='u_loginName']").val().length<1){
+                $("#name").html("账号不能为空！");
+                $("#name").css("color","red");
+                return;
+            }
+
+            if ($("input[name='u_passWord']").val().length<1){
+                $("#password").html("密码不能为空！");
+                $("#password").css("color","red");
+                return;
+            }
+
+            if ($("input[name='u_trueName']").val().length<1){
+                $("#realname").html("真实姓名不能为空！");
+                $("#realname").css("color","red");
+                return;
+            }
+
+            if ($("input[name='u_email']").val().length<1){
+                $("#email").html("邮箱不能为空！");
+                $("#email").css("color","red");
+                return;
+            }
+
+            if ($("#role").val()==-1){
+                alert("请选择角色");
+                return;
+            }
+            //如果账号已存在或者密码不合法则无法提交
+            if (document.getElementById("name","password","realname","email").style.color=='red' )
+                return;
+
+            $.ajax({
+                type: "POST",
+                url: "/user/",
+                data: $("#myForm").serialize(),
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        window.location.href = "/html/User/index.html";
+                    }else{
+                        alert("添加失败！"+vo.msg);
+                    }
+                }
+            });
+        });
+    });
+
+    //加载角色
+    function loadRole(){
+        $.ajax({
+            type: "GET",
+            url: "/role/list",
+            data: $("#myForm").serialize(),
+            dataType: "json",
+            success: function (vo) {
+                let list = vo.pageInfo.list;
+                let str = "<option value='-1'>--请选择--";
+                for (let i = 0; i < list.length; i++) {
+                    let obj = list[i];
+                    let roleId=obj.r_id;
+                    let roleName=obj.r_name;
+                    str+="<option value="+roleId+">"+roleName;
+                }
+                $("#role").html(str);
+            }
+        });
+    }
+</script>
+</head>
+<body>
+<form id="myForm" class="definewidth m20">
+<input type="hidden" name="u_id"  />
+    <table class="table table-bordered table-hover definewidth m10">
+        <tr>
+            <td width="10%" class="tableleft">登录名</td>
+            <td><input type="text" name="u_loginName"/><span id="name"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft">密码</td>
+            <td><input type="password" name="u_passWord"/><span id="password"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft">真实姓名</td>
+            <td><input type="text" name="u_trueName"/><span id="realname"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft">邮箱</td>
+            <td><input type="text" name="u_email"/><span id="email"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft" name="u_state">状态</td>
+            <td>
+                <input type="radio" name="u_state" value="0" checked/> 启用
+              <input type="radio" name="u_state" value="1" /> 禁用
+            </td>
+        </tr>
+        <tr>
+            <td class="tableleft">角色</td>
+            <td>
+            	<select name="r_id" id="role">
+        			<option value="-1">--请选择--
+        			<option value="1">管理员
+        			<option value="2">院长
+            		<option value="3">医生护士
+       			 </select>
+        	</td>
+        </tr>
+        <tr>
+            <td class="tableleft"></td>
+            <td>
+                <button type="button" class="btn btn-primary" type="button" id="btnAdd">更新</button>&nbsp;&nbsp;<button type="button" class="btn btn-success" name="backid" id="backid">返回列表</button>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>

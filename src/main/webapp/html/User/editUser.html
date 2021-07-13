@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/style.css" />
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+ 
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+<form id="myForm" class="definewidth m20">
+<input type="hidden" name="u_id" />
+    <table class="table table-bordered table-hover definewidth m10">
+        <tr>
+            <td width="10%" class="tableleft">登录名</td>
+            <td ><span name="u_loginName"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft">密码</td>
+            <td><input type="password" name="u_passWord"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft">真实姓名</td>
+            <td><input type="text" name="u_trueName" value="admin"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft">邮箱</td>
+            <td><input type="text" name="u_email" value="qq@qq.com"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft">状态</td>
+            <td>
+                <input type="radio" name="u_state" value="0" id="sta0" /> 启用
+              <input type="radio" name="u_state" value="1" id="sta1"/> 禁用
+            </td>
+        </tr>
+        <tr>
+            <td class="tableleft">角色</td>
+            <td>
+            	<select name="r_id" id="role">
+<!--        			<option value="-1">&#45;&#45;请选择&#45;&#45;-->
+<!--        			<option value="1" selected>管理员-->
+<!--        			<option value="2">院长-->
+<!--            		<option value="3">医生护士-->
+       			 </select>
+        	</td>
+        </tr>
+        <tr>
+            <td class="tableleft"></td>
+            <td>
+                <button type="button" class="btn btn-primary" type="button" id="btnUpdate">更新</button>&nbsp;&nbsp;<button type="button" class="btn btn-success" name="backid" id="backid">返回列表</button>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>
+<script>
+    String.prototype.GetValue= function(para) {
+        let reg = new RegExp("(^|&)"+ para +"=([^&]*)(&|$)");
+        let r = this.substr(this.indexOf("\?")+1).match(reg);
+        if (r!=null) return unescape(r[2]); return null;
+    }
+
+    $(function () {
+
+		$('#backid').click(function(){
+				window.location.href="index.html";
+		 });
+
+    });
+
+    $(function (){
+        //根据地址获取u_id,如果null则执行增加，否则执行更新
+        let url = document.location.toString();//获取URL
+        let u_id=url.GetValue("u_id");
+        let pageNum=url.GetValue("pageNum");
+        let pageSize=url.GetValue("pageSize");
+
+        //根据id查询要更新的用户信息并回显到页面
+        queryById(u_id);
+
+        //提交按钮的单击事件--实现真正的更新
+        $("#btnUpdate").click(function () {
+            $.ajax({
+                type: "POST",//这里必须写POST
+                url: "/user/"+u_id,
+                data: $("#myForm").serialize()+"&_method=PUT",
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        window.location.href = "/html/User/index.html?pageNum="+pageNum+"&pageSize="+pageSize;
+                    }else{
+                        alert("更新失败！"+vo.msg);
+                    }
+                }
+            });
+        });
+    })
+    //加载角色
+    function loadRole(rid){
+        $.ajax({
+            type: "GET",
+            url: "/role/list",
+            data: $("#myForm").serialize(),
+            dataType: "json",
+            success: function (vo) {
+                let list = vo.pageInfo.list;
+                let str = "<option value='-1'>--请选择--";
+                for (let i = 0; i < list.length; i++) {
+                    let obj = list[i];
+                    let roleId=obj.r_id;
+                    let roleName=obj.r_name;
+                    if (rid==roleId)
+                        str+="<option value="+roleId+" selected>"+roleName;
+                    else
+                        str+="<option value="+roleId+">"+roleName;
+                }
+                $("#role").html(str);
+            }
+        });
+    }
+
+    function queryById(u_id) {
+        $.ajax({
+            type: "GET",
+            url: "/user/"+u_id, //RESTful风格的API定义
+            data: "",
+            success: function (vo) {
+                let obj=vo.obj;
+                let u_id=obj.u_id;
+                let u_loginName=obj.u_loginName;
+                let u_trueName=obj.u_trueName;
+                let u_passWord=obj.u_passWord;
+                let u_email=obj.u_email;
+                let u_state=obj.u_state;
+                let r_id=obj.r_id;
+                $("span[name='u_loginName']").html(u_loginName);
+                $("input[name='u_passWord']").val(u_passWord);
+                $("input[name='u_trueName']").val(u_trueName);
+                $("input[name='u_passWord']").val(u_passWord);
+                $("input[name='u_email']").val(u_email);
+                // $("#role option[value="+r_id+"]").attr("selected", true);
+                //加载角色
+                loadRole(r_id);
+                $("input[type='radio'][name='u_state'][value="+u_state+"]").attr("checked",true)
+
+            }
+        });
+    }
+</script>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/style.css" />
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+ 
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+    <script>
+    $(function () {
+		$('#backid').click(function(){
+				window.location.href="index.html";
+		 });
+
+
+		//验证菜单名称唯一性
+        $("input[name='m_name']").blur(function (){
+            $.ajax({
+                type: "GET",
+                url: "/menu/list",
+                data: {pageNum:1,pageSize:100},
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        let list=vo.pageInfo.list;
+                        var flag=false;
+                        for (var i=0;i<list.length;i++){
+                            if($("input[name='m_name']").val() == list[i].m_name)
+                                flag=true;
+                        }
+                        if (flag){
+                            $("#name").html("菜单已存在！");
+                            $("#name").css("color","red");
+                        }else {
+                            $("#name").html("菜单可用");
+                            $("#name").css("color","green");
+                        }
+                    }
+                }
+            });
+        })
+        //提交按钮的单击事件
+        $("#btnAdd").click(function () {
+            if ($("input[name='m_url']").val()==null || $("input[name='m_url']").val()==''){
+                alert("url不能不空！");
+                return;
+            }
+
+            //如果菜单已存在则无法提交
+            if (document.getElementById("name").style.color=='red')
+                return;
+
+            $.ajax({
+                type: "POST",
+                url: "/menu/",
+                data: $("#myForm").serialize(),
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        window.location.href = "/html/Resource/index.html";
+                    }else{
+                        alert("添加失败！"+vo.msg);
+                    }
+                }
+            });
+        });
+    });
+</script>
+</head>
+<body>
+<form id="myForm" class="definewidth m20">
+<input type="hidden" name="m_id"  />
+    <table class="table table-bordered table-hover definewidth m10">
+        <tr>
+            <td width="10%" class="tableleft">资源名称</td>
+            <td><input type="text" name="m_name"/><span id="name"></span></td>
+        </tr>
+        <tr>
+            <td class="tableleft">url</td>
+            <td><input type="text" name="m_url"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft">是否有效</td>
+            <td>
+                <input type="radio" name="m_state" value="0" checked/> 有效
+              <input type="radio" name="m_state" value="1" /> 无效
+            </td>
+        </tr>
+        <tr>
+            <td class="tableleft"></td>
+            <td>
+                <button type="button" class="btn btn-primary" type="button" id="btnAdd">更新</button>&nbsp;&nbsp;
+                <button type="button" class="btn btn-success" name="backid" id="backid">返回列表</button>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>

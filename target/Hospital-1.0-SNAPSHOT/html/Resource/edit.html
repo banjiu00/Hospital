@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/style.css" />
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+ 
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+<form id="myForm" class="definewidth m20">
+<input type="hidden" name="id" value="{$user.id}" />
+    <table class="table table-bordered table-hover definewidth m10">
+        <tr>
+            <td width="10%" class="tableleft">资源名称</td>
+            <td><input type="text" name="m_name" value="挂号信息管理"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft">url</td>
+            <td><input type="text" name="m_url" value="query.action"/></td>
+        </tr>
+        <tr>
+            <td class="tableleft" name="m_state">是否有效</td>
+            <td>
+                <input type="radio" name="m_state" value="0" /> 有效
+              <input type="radio" name="m_state" value="1" /> 无效
+            </td>
+        </tr>
+        <tr>
+            <td class="tableleft"></td>
+            <td>
+                <button type="button" class="btn btn-primary" type="button" id="btnUpdate">更新</button>&nbsp;&nbsp;
+                <button type="button" class="btn btn-success" name="backid" id="backid">返回列表</button>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>
+<script>
+
+    String.prototype.GetValue= function(para) {
+        let reg = new RegExp("(^|&)"+ para +"=([^&]*)(&|$)");
+        let r = this.substr(this.indexOf("\?")+1).match(reg);
+        if (r!=null) return unescape(r[2]); return null;
+    }
+
+    $(function () {       
+		$('#backid').click(function(){
+				window.location.href="index.html";
+		 });
+    });
+
+
+    $(function (){
+        //根据地址获取u_id,如果null则执行增加，否则执行更新
+        let url = document.location.toString();//获取URL
+        let m_id=url.GetValue("m_id");
+        let pageNum=url.GetValue("pageNum");
+        let pageSize=url.GetValue("pageSize");
+        //根据id查询要更新的菜单信息并回显到页面
+        queryById(m_id);
+
+        //提交按钮的单击事件--实现真正的更新
+        $("#btnUpdate").click(function () {
+
+            $.ajax({
+                type: "POST",//这里必须写POST
+                url: "/menu/"+m_id,
+                data: $("#myForm").serialize()+"&_method=PUT",
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        window.location.href = "/html/Resource/index.html?pageNum="+pageNum+"&pageSize="+pageSize;
+                    }else{
+                        alert("更新失败！"+vo.msg);
+                    }
+                }
+            });
+        });
+    })
+
+    function queryById(m_id) {
+        $.ajax({
+            type: "GET",
+            url: "/menu/"+m_id, //RESTful风格的API定义
+            data: "",
+            success: function (vo) {
+                let obj=vo.obj;
+                let m_id=obj.m_id;
+                let m_name=obj.m_name;
+                let m_url=obj.m_url;
+                let m_state=obj.m_state;
+                $("input[name='m_name']").val(m_name);
+                $("input[name='m_url']").val(m_url);
+                // $("#role option[value="+r_id+"]").attr("selected", true);
+
+                $("input[type='radio'][name='m_state'][value="+m_state+"]").attr("checked",true)
+
+            }
+        });
+    }
+</script>

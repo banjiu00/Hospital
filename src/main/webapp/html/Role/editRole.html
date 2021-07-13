@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/bootstrap-responsive.css" />
+    <link rel="stylesheet" type="text/css" href="../Css/style.css" />
+    <script type="text/javascript" src="../Js/jquery.js"></script>
+    <script type="text/javascript" src="../Js/jquery.sorted.js"></script>
+    <script type="text/javascript" src="../Js/bootstrap.js"></script>
+    <script type="text/javascript" src="../Js/ckform.js"></script>
+    <script type="text/javascript" src="../Js/common.js"></script>
+
+    <style type="text/css">
+        body {
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+<form id="myForm" class="definewidth m20" >
+<table class="table table-bordered table-hover definewidth m10">
+    <tr>
+        <td width="10%" class="tableleft">角色名称</td>
+        <td><input type="text" name="r_name" value="管理员"/></td>
+    </tr>
+    <tr>
+        <td class="tableleft">状态</td>
+        <td>
+            <input type="radio" name="r_state" value="0"  /> 启用
+           <input type="radio" name="r_state" value="1"  /> 禁用
+        </td>
+    </tr>
+    <tr>
+        <td class="tableleft">权限</td>
+        <td id="tbody">
+		<ul>
+            <label class='checkbox inline'>
+            <input type='checkbox' checked name='group[]' value='' />挂号信息管理</label>
+        </ul>
+                <ul><label class='checkbox inline'><input type='checkbox'  checked name='group[]' value='' />门诊医生管理</label></ul>
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />药品管理</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />住院办理</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />收费项目登记</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />在院发药</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />住院结算</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' checked  name='group[]' value='' />月营业额统计</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' name='group[]' value='' />年营业额统计</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' name='group[]' value='' />用户管理</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' name='group[]' value='' />角色管理</label></ul> 
+                <ul><label class='checkbox inline'><input type='checkbox' name='group[]' value='' />资源管理</label></ul> 
+		</td>
+    </tr>
+    <tr>
+        <td class="tableleft"></td>
+        <td>
+            <button type="button" class="btn btn-primary" type="button" id="btnUpdate">更新</button> &nbsp;&nbsp;<button type="button" class="btn btn-success" name="backid" id="backid">返回列表</button>
+        </td>
+    </tr>
+</table>
+</form>
+</body>
+</html>
+<script>
+    String.prototype.GetValue= function(para) {
+        let reg = new RegExp("(^|&)"+ para +"=([^&]*)(&|$)");
+        let r = this.substr(this.indexOf("\?")+1).match(reg);
+        if (r!=null) return unescape(r[2]); return null;
+    }
+
+    $(function () {
+        $(':checkbox[name="group[]"]').click(function () {
+            $(':checkbox', $(this).closest('li')).prop('checked', this.checked);
+        });
+
+		$('#backid').click(function(){
+				window.location.href="index.html";
+		 });
+
+    });
+
+    $(function (){
+        //根据地址获取u_id,如果null则执行增加，否则执行更新
+        let url = document.location.toString();//获取URL
+        let r_id=url.GetValue("r_id");
+        let pageNum=url.GetValue("pageNum");
+        let pageSize=url.GetValue("pageSize");
+
+        //根据id查询要更新的用户信息并回显到页面
+        queryById(r_id);
+
+        //提交按钮的单击事件--实现真正的更新
+        $("#btnUpdate").click(function () {
+
+            $.ajax({
+                type: "POST",//这里必须写POST
+                url: "/role/"+r_id,
+                data: $("#myForm").serialize()+"&_method=PUT",
+                dataType:"json",
+                success: function(vo){
+                    if(vo.code==200) {
+                        window.location.href = "/html/Role/index.html?pageNum="+pageNum+"&pageSize="+pageSize;
+                    }else{
+                        alert("更新失败！"+vo.msg);
+                    }
+                }
+            });
+        });
+    })
+
+    function queryById(r_id) {
+        $.ajax({
+            type: "GET",
+            url: "/role/"+r_id, //RESTful风格的API定义
+            data: "",
+            success: function (vo) {
+                let obj=vo.obj;
+                let r_id=obj.r_id;
+                let r_name=obj.r_name;
+                let r_state=obj.r_state;
+                let menuList=obj.menuList;
+                $("input[name='r_name']").val(r_name);
+
+                // $("#role option[value="+r_id+"]").attr("selected", true);
+                //加载角色
+                loadMenu(menuList);
+                $("input[type='radio'][name='r_state'][value="+r_state+"]").attr("checked",true);
+
+            }
+        });
+    }
+
+    //加载菜单
+    function loadMenu(menuList){
+        $.ajax({
+            type: "GET",
+            url: "/menu/list",
+            data: {pageNum:1,pageSize:20},//主要是分页和多条件参数数据
+            dataType: "json",
+            success: function (vo) {
+                //alert( "Data Saved: " + vo );
+                let list = vo.pageInfo.list;
+                let str = "";
+                for (let i = 0; i < list.length; i++) {
+                    let obj = list[i];
+                    let m_name = obj.m_name;
+                    let m_id=obj.m_id;
+                    let check="  ";
+                    for (let j=0;j<menuList.length;j++){
+                        if (menuList[j].m_id==m_id){
+                            check='checked';
+                        }
+                    }
+                    str += "<ul><label class='checkbox inline'><input type='checkbox' "+check+" name='group' value="+m_id+" />"+m_name+"</label></ul>";
+                }
+                $("#tbody").html(str);
+            }
+        });
+    }
+</script>
